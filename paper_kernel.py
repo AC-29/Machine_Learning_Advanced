@@ -54,7 +54,7 @@ class extension_cluster_kernel:
         q = parameter_list[2]
         tmp_eig = np.zeros((len(self.eigvalues),len(self.eigvalues)))
         for i,e in enumerate(self.eigvalues):
-            if e >= r:
+            if i >= r:
                 tmp_eig[i,i] = np.power(e,p)
             else:
                 tmp_eig[i,i] = np.power(e,q)
