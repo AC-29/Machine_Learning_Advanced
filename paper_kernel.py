@@ -26,6 +26,7 @@ class extension_cluster_kernel:
         return self.compute_K(self.L)
     def step(self,lambda_cut):
         tmp_eig = np.zeros((len(self.eigvalues),len(self.eigvalues)))
+        
         for i,e in enumerate(self.eigvalues):
             if e >= lambda_cut:
                 tmp_eig[i,i] = 1
@@ -47,7 +48,24 @@ class extension_cluster_kernel:
         L_hat = (self.eigvectors.dot(tmp_eig)).dot(self.eigvectors.T)
         self.K = self.compute_K(L_hat)
         return self.K
-    def distance(self,x1,x2):
-        ind1 = self.dict[str(x1)]
-        ind2 = self.dict[str(x2)]
-        return self.K[ind1,ind2]
+    def poly_step(self,parameter_list):
+        r = parameter_list[0]
+        p = parameter_list[1]
+        q = parameter_list[2]
+        tmp_eig = np.zeros((len(self.eigvalues),len(self.eigvalues)))
+        for i,e in enumerate(self.eigvalues):
+            if e >= r:
+                tmp_eig[i,i] = np.power(e,p)
+            else:
+                tmp_eig[i,i] = np.power(e,q)
+        L_hat = (self.eigvectors.dot(tmp_eig)).dot(self.eigvectors.T)
+        self.K = self.compute_K(L_hat)
+        return self.K
+    def distance(self,X1,X2):
+            gram_matrix = np.zeros((X1.shape[0], X2.shape[0]))
+            for i, x1 in enumerate(X1):
+                for j, x2 in enumerate(X2):
+                    ind1 = self.dict[str(x1)]
+                    ind2 = self.dict[str(x2)]
+                    gram_matrix[i, j] = self.K[ind1,ind2]
+            return gram_matrix
