@@ -63,9 +63,10 @@ class extension_cluster_kernel:
         return self.K
     def distance(self,X1,X2):
             gram_matrix = np.zeros((X1.shape[0], X2.shape[0]))
+            index2list = np.zeros((X2.shape[0]),dtype=int)
+            for j, x2 in enumerate(X2):
+                index2list[j] = self.dict[str(x2)]
             for i, x1 in enumerate(X1):
-                for j, x2 in enumerate(X2):
-                    ind1 = self.dict[str(x1)]
-                    ind2 = self.dict[str(x2)]
-                    gram_matrix[i, j] = self.K[ind1,ind2]
+                ind1 = self.dict[str(x1)]
+                gram_matrix[i, :] = self.K[ind1,index2list]
             return gram_matrix
