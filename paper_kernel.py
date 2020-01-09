@@ -70,3 +70,53 @@ class extension_cluster_kernel:
                 ind1 = self.dict[str(x1)]
                 gram_matrix[i, :] = self.K[ind1,index2list]
             return gram_matrix
+        
+        
+class random_walk:
+    def __init__(self,labeledData,labels,unlabeledData,gam=None,k=1,t=2):
+        data = np.concatenate((labeledData,unlabeledData))
+        L = labeledData.shape[0]
+        N = data.shape[0]
+        labels = (1==labels)*1
+        self.W = rbf_kernel(data,gamma=gam)
+        for i in range((self.W).shape[0]):
+            sort = list(np.argsort(self.W[i]))
+            sort.remove(i)
+            for j in sort[k:]:
+                self.W[i,j]=0
+                
+        self.W = np.maximum(self.W,(self.W).transpose())
+        self.P=np.zeros(((self.W).shape))
+        sumRowsW = np.sum(self.W,axis=1)
+        for i in range((self.W).shape[0]):
+            self.P[i]=self.W[i]/sumRowsW[i]
+        
+        self.PT = np.linalg.matrix_power(self.P,t)
+        
+        self.labelProbability = np.zeros((N,2))
+        #Initializing random values
+        for i in range(N):
+            number = (0.5 - np.random.rand())*0.4
+            self.labelProbability[i,0] = 0.5+number
+            self.labelProbability[i,1]=1-self.labelProbability[i,0]
+        
+        self.probability = np.zeros((N,L))
+        oldloglike = -np.inf
+        self.loglike = np.zeros(100)
+        for iter in range(100):
+            #E Step
+            for i in range(N):
+                for j in range(L):
+                    self.probability[i,j] = self.labelProbability[i,labels[j]]*self.PT[i,j]
+                    
+            #M Step
+            for i in range(N):
+                self.labelProbability[i,0] = (np.sum((labels==0)*self.probability[i]))/(np.sum(self.probability[i]))
+                self.labelProbability[i,1] = (np.sum((labels==1)*self.probability[i]))/(np.sum(self.probability[i]))
+            self.loglike[iter] = np.sum(np.log(np.sum(self.probability,axis=0)))
+            if np.abs(self.loglike[iter] - oldloglike) < 10**(-4):
+                break
+            oldloglike = self.loglike[iter]
+        
+        self.posterior = np.matmul((self.labelProbability).transpose(),self.PT)
+        self.results = ((np.argmax(self.posterior,axis = 0))*2)-1
