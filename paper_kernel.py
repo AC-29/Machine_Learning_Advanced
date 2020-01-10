@@ -154,3 +154,19 @@ class random_walk:
         self.posterior = np.matmul((self.labelProbability).transpose(),self.PT)
         self.results = ((np.argmax(self.posterior,axis = 0))*2)-1
         
+def JH_bound(dataTrain,targets,dataTest):
+    data = np.concatenate((dataTrain,dataTest))
+    kern = extension_cluster_kernel(data,'linear')
+    linearEigval = -np.sort(-kern.eigvalues)[:(dataTrain.shape[0])]
+    T = np.zeros((len(linearEigval)))
+    for i,lamda_cut in enumerate(linearEigval):
+        kern.poly_step([lamda_cut,1/2,2])
+        clf = svm.SVC(C=100,kernel=kern.distance)
+        clf.fit(dataTrain,targets)
+        alphas = np.abs(clf.dual_coef_).reshape(-1)
+        supportV = clf.support_
+        for j in range(len(alphas)):
+            T[i] += ((alphas[j]*kern.K[supportV[j],supportV[j]]-1)>0)*1
+        T[i] = T[i]/dataTrain.shape[0]
+    return T
+        
