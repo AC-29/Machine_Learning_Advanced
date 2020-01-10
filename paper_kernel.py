@@ -3,6 +3,7 @@ from sklearn.metrics.pairwise import rbf_kernel
 import sys
 class extension_cluster_kernel:
     def __init__(self, data, type, parameters=None):
+        self.data = data
         self.dict = {}
         for i,d in enumerate(data):
             self.dict[str(d)] = i
@@ -62,11 +63,18 @@ class extension_cluster_kernel:
         self.K = self.compute_K(L_hat)
         return self.K
     def distance(self,X1,X2):
-            gram_matrix = np.zeros((X1.shape[0], X2.shape[0]))
-            index2list = np.zeros((X2.shape[0]),dtype=int)
-            for j, x2 in enumerate(X2):
-                index2list[j] = self.dict[str(x2)]
-            for i, x1 in enumerate(X1):
-                ind1 = self.dict[str(x1)]
-                gram_matrix[i, :] = self.K[ind1,index2list]
-            return gram_matrix
+        gram_matrix = np.zeros((X1.shape[0], X2.shape[0]))
+        index2list = np.zeros((X2.shape[0]),dtype=int)
+        for j, x2 in enumerate(X2):
+            index2list[j] = self.dict[str(x2)]
+        for i, x1 in enumerate(X1):
+            ind1 = self.dict[str(x1)]
+            gram_matrix[i, :] = self.K[ind1,index2list]
+        return gram_matrix
+    def distance_test(self,X1,X2):
+        index1list = np.zeros((X1.shape[0]),dtype=int)
+        for j, x1 in enumerate(X1):
+            index1list[j] = self.dict[str(x1)]
+        known_samples = data[index1list]
+        new_samples = X2
+        
