@@ -6,8 +6,10 @@ class extension_cluster_kernel:
         self.dict = {}
         self.data = data
         for i,d in enumerate(data):
-            self.dict[str(d)] = i
-        K = rbf_kernel(data)
+            self.dict[d.tobytes()] = i
+        sigma=6
+        self.gam = 1/(2*sigma**2)
+        K = rbf_kernel(data,gamma=self.gam)
         self.rbfK = K
         self.invRbfK = np.linalg.inv(self.rbfK)
         D = np.zeros((K.shape[0],K.shape[1]))
@@ -29,7 +31,6 @@ class extension_cluster_kernel:
         return self.compute_K(self.L)
     def step(self,lambda_cut):
         tmp_eig = np.zeros((len(self.eigvalues),len(self.eigvalues)))
-        
         for i,e in enumerate(self.eigvalues):
             if e >= lambda_cut:
                 tmp_eig[i,i] = 1
@@ -38,10 +39,10 @@ class extension_cluster_kernel:
         L_hat = (self.eigvectors.dot(tmp_eig)).dot(self.eigvectors.T)
         self.K = self.compute_K(L_hat)
         return self.K
-    def linear_step(self,lambda_cut):
+    def linear_step(self,r):
         tmp_eig = np.diag(self.eigvalues)
         for i,e in enumerate(self.eigvalues):
-            if e < lambda_cut:
+            if e < r:
                 tmp_eig[i,i] = 0
         L_hat = (self.eigvectors.dot(tmp_eig)).dot(self.eigvectors.T)
         self.K = self.compute_K(L_hat)
@@ -52,56 +53,58 @@ class extension_cluster_kernel:
         self.K = self.compute_K(L_hat)
         return self.K
     def poly_step(self,parameter_list):
-        r = parameter_list[0]
+        cut_off = parameter_list[0]
         p = parameter_list[1]
         q = parameter_list[2]
         tmp_eig = np.zeros((len(self.eigvalues),len(self.eigvalues)))
         for i,e in enumerate(self.eigvalues):
-            if i >= r:
+            if e>=cut_off:
                 tmp_eig[i,i] = np.power(e,p)
             else:
                 tmp_eig[i,i] = np.power(e,q)
         L_hat = (self.eigvectors.dot(tmp_eig)).dot(self.eigvectors.T)
         self.K = self.compute_K(L_hat)
         return self.K
+    
     def distance(self,X1,X2):
         gram_matrix = np.zeros((X1.shape[0], X2.shape[0]))
         index2list = np.zeros((X2.shape[0]),dtype=int)
         for j, x2 in enumerate(X2):
-            index2list[j] = self.dict[str(x2)]
+            index2list[j] = self.dict[x2.tobytes()]
         for i, x1 in enumerate(X1):
-            ind1 = self.dict[str(x1)]
+            ind1 = self.dict[x1.tobytes()]
             gram_matrix[i, :] = self.K[ind1,index2list]
         return gram_matrix
     def distanceGeneral(self,X1,X2):
         gram_matrix = np.zeros((X1.shape[0], X2.shape[0]))
         index2list = np.zeros((X2.shape[0]),dtype=int)
         for j, x2 in enumerate(X2):
-            if str(x2) in self.dict:
-                index2list[j] = self.dict[str(x2)]
+            if x2.tobytes() in self.dict:
+                index2list[j] = self.dict[x2.tobytes()]
             else:
                 return self.distance_test(X1,X2)
         for i, x1 in enumerate(X1):
-            if str(x1) in self.dict:
-                ind1 = self.dict[str(x1)]
+            if x1.tobytes() in self.dict:
+                ind1 = self.dict[x1.tobytes()]
                 gram_matrix[i, :] = self.K[ind1,index2list]
             else:
+                #print('I am in second branch')
                 return self.distance_test(X2,X1).T
         return gram_matrix
     def distance_test(self,X1,X2):
         index1list = np.zeros((X1.shape[0]),dtype=int)
         for j, x1 in enumerate(X1):
-            index1list[j] = self.dict[str(x1)]
+            index1list[j] = self.dict[x1.tobytes()]
         known_samples = self.data[index1list]
         new_samples = X2
-        V = rbf_kernel(new_samples,known_samples)
-        K_hat_cut = np.zeros((len(index1list),len(index1list)))
-        invRbfK_cut = np.zeros((len(index1list),len(index1list)))
-        for i,ei in enumerate(index1list):
-            for j,ej in enumerate(index1list):
-                K_hat_cut[i,j] = self.K[ei,ej]
-                invRbfK_cut[i,j] = self.invRbfK[ei,ej]
-        projection = ((K_hat_cut).dot(invRbfK_cut)).dot(V.T)
+        #print('multiplication of kernels', np.dot(self.K,self.invRbfK))
+        V = rbf_kernel(new_samples,self.data,gamma=self.gam)
+        temp = ((self.K).dot(self.invRbfK)).dot(V.T)
+        #print(temp.shape)
+        projection = np.zeros((X1.shape[0],X2.shape[0]))
+        for i in range(X1.shape[0]):
+            ind1 = self.dict[X1[i].tobytes()]
+            projection[i] = temp[ind1]
         return projection
         
         
