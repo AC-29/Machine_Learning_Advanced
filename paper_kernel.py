@@ -1,15 +1,73 @@
 import numpy as np
-from sklearn.metrics.pairwise import rbf_kernel
+from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel
 import sys
+
+class kernel_function:
+    def __init__(self,kernelname, **parameter_list):
+        self.kernel = kernelname
+        self.params = parameter_list
+    def calculate(self,data1,data2=None):
+        if self.kernel == 'rbf':
+            if self.params:
+                return rbf_kernel(data1,data2,**self.params)
+            else:
+                return rbf_kernel(data1,data2)
+        elif self.kernel == 'polynomial':
+            if self.params:
+                return polynomial_kernel(data1,data2,**self.params)
+            else:
+                return polynomial_kernel(data1,data2)
+        elif self.kernel == 'knn':
+            return knn_kernel(data1,**self.params)
+        elif self.kernel == 'spline':
+            return spline_kernel(data1,data2)
+
+class kernel_mix:
+    def __init__(self, *kernels):
+        self.kernel_array = []
+        for kernel in kernels:
+            self.kernel_array.append(kernel)
+    def calculate(self,data1,data2=None):
+        tmp = self.kernel_array[0].calculate(data1,data2)
+        ans = tmp/np.mean(tmp)
+        for remaining_kernels in self.kernel_array[1:]:
+            tmp = remaining_kernels.calculate(data1,data2)
+            ans+= tmp/np.mean(tmp)
+        return ans
+
+def knn_kernel(data,k=2,t=4): #only without projection
+    W = rbf_kernel(data)
+    for i in range((W).shape[0]):
+        sort = list(np.argsort(W[i]))
+        sort.remove(i)
+        for j in sort[k:]:
+            W[i,j]=0
+            
+    W = np.maximum(W,(W).transpose())
+    P=np.zeros(((W).shape))
+    sumRowsW = np.sum(W,axis=1)
+    for i in range((W).shape[0]):
+        P[i]=W[i]/sumRowsW[i]
+    PT = np.linalg.matrix_power(P,t)
+    return 1/PT
+
+def spline_kernel(data1,data2=None):
+    if not data2:
+        data2 = data1
+    output = np.zeros((data1.shape[0],data2.shape[0]))
+    for i,sample1 in enumerate(data1):
+        for j,sample2 in enumerate(data2):
+            tmp = np.minimum(sample1,sample2)
+            output[i,j] = np.prod(1 + sample1*sample2 + sample1*sample2*tmp - (sample1+sample2)*(tmp^2)/2 + (tmp^3)/3)
+    return output
+
 class extension_cluster_kernel:
-    def __init__(self, data, type, parameters=None):
+    def __init__(self, data, kernel_function, type, parameters=None):
         self.dict = {}
         self.data = data
         for i,d in enumerate(data):
             self.dict[d.tobytes()] = i
-        sigma=6
-        self.gam = 1/(2*sigma**2)
-        K = rbf_kernel(data,gamma=self.gam)
+        K = kernel_function.calculate(data)
         self.rbfK = K
         self.invRbfK = np.linalg.inv(self.rbfK)
         D = np.zeros((K.shape[0],K.shape[1]))
@@ -95,10 +153,9 @@ class extension_cluster_kernel:
         index1list = np.zeros((X1.shape[0]),dtype=int)
         for j, x1 in enumerate(X1):
             index1list[j] = self.dict[x1.tobytes()]
-        known_samples = self.data[index1list]
         new_samples = X2
         #print('multiplication of kernels', np.dot(self.K,self.invRbfK))
-        V = rbf_kernel(new_samples,self.data,gamma=self.gam)
+        V = kernel_function.calculate(new_samples,self.data)
         temp = ((self.K).dot(self.invRbfK)).dot(V.T)
         #print(temp.shape)
         projection = np.zeros((X1.shape[0],X2.shape[0]))
