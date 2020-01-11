@@ -52,22 +52,23 @@ def knn_kernel(data,k=2,t=4): #only without projection
     return 1/PT
 
 def spline_kernel(data1,data2=None):
-    if not data2:
+    if data2 is None:
         data2 = data1
     output = np.zeros((data1.shape[0],data2.shape[0]))
     for i,sample1 in enumerate(data1):
         for j,sample2 in enumerate(data2):
             tmp = np.minimum(sample1,sample2)
-            output[i,j] = np.prod(1 + sample1*sample2 + sample1*sample2*tmp - (sample1+sample2)*(tmp^2)/2 + (tmp^3)/3)
+            output[i,j] = np.prod(1 + sample1*sample2 + sample1*sample2*tmp - (sample1+sample2)*(tmp**2)/2 + (tmp**3)/3)
     return output
 
 class extension_cluster_kernel:
-    def __init__(self, data, kernel_function, type, parameters=None):
+    def __init__(self, data, kernel_f, type, parameters=None):
         self.dict = {}
         self.data = data
         for i,d in enumerate(data):
             self.dict[d.tobytes()] = i
-        K = kernel_function.calculate(data)
+        self.kernel_function = kernel_f
+        K = self.kernel_function.calculate(data)
         self.rbfK = K
         self.invRbfK = np.linalg.inv(self.rbfK)
         D = np.zeros((K.shape[0],K.shape[1]))
@@ -155,7 +156,7 @@ class extension_cluster_kernel:
             index1list[j] = self.dict[x1.tobytes()]
         new_samples = X2
         #print('multiplication of kernels', np.dot(self.K,self.invRbfK))
-        V = kernel_function.calculate(new_samples,self.data)
+        V = self.kernel_function.calculate(new_samples,self.data)
         temp = ((self.K).dot(self.invRbfK)).dot(V.T)
         #print(temp.shape)
         projection = np.zeros((X1.shape[0],X2.shape[0]))
