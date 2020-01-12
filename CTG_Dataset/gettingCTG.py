@@ -25,23 +25,35 @@ data = pand.to_numpy()
 
 targets=data[:,-1]
 data=data[:,:-1]
-sigma = 5
+
+sigma = 6
 gamma = 1/(2*(sigma**2))
+trainSize = 30
 iterations = 50
 accuracy_total = np.zeros((iterations, 3))
+count = 0
 for i in range(iterations):
-    np.random.seed(i)
-    indeces = np.random.permutation(data.shape[0])
-    train_l = data[indeces[:40]]
-    train_targets = targets[indeces[0:40]]
-    train_unlabeled = data[indeces[40:140]]
-    train_unlabeled_target = targets[indeces[40:140]]
-    test_data = data[indeces[140:-1]]
-    test_data_target = targets[indeces[140:-1]]
+    #
+    lengthTrain = 1
+    
+    while lengthTrain == 1:
+        np.random.seed(i+count)
+        indeces = np.random.permutation(data.shape[0])
+        train_targets = targets[indeces[0:trainSize]]
+        lengthTrain = len(np.unique(train_targets))
+        count += count
+        
+    train_l = data[indeces[:trainSize]]    
+    train_unlabeled = data[indeces[trainSize:(trainSize+100)]]
+    train_unlabeled_target = targets[indeces[trainSize:(trainSize+100)]]
+    test_data = data[indeces[(trainSize+100):-1]]
+    test_data_target = targets[indeces[(trainSize+100):-1]]
+        
+    
     
     
     ## SVM ##
-    clf = svm.SVC(C=100, gamma=gamma)
+    clf = svm.SVC(C=100, gamma=gamma,kernel = 'linear')
     clf.fit(train_l, train_targets)
     accuracy_total[i, 0] = clf.score(test_data, test_data_target)
     
@@ -64,7 +76,9 @@ for i in range(iterations):
     lin_ker = extension_cluster_kernel(dataAux, kernel,'linear')
     eig = lin_ker.eigvalues
     cut_off = k_th_largest_eig(eig, i)
-    lin_ker.poly_step([cut_off,1/2,2])
+    # lin_ker.poly_step([cut_off,1/2,2])
+    # lin_ker.polynomial(12)
+    lin_ker.step(cut_off)
     clf_ck = svm.SVC(kernel=lin_ker.distance, C=100, class_weight='balanced')
     trn_target = np.array(train_targets)
     clf_ck.fit(trn_labeled, trn_target)
