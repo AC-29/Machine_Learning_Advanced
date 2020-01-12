@@ -27,7 +27,7 @@ targets=data[:,-1]
 data=data[:,:-1]
 sigma = 5
 gamma = 1/(2*(sigma**2))
-iterations = 10
+iterations = 50
 accuracy_total = np.zeros((iterations, 3))
 for i in range(iterations):
     np.random.seed(i)
@@ -64,7 +64,7 @@ for i in range(iterations):
     lin_ker = extension_cluster_kernel(dataAux, kernel,'linear')
     eig = lin_ker.eigvalues
     cut_off = k_th_largest_eig(eig, i)
-    lin_ker.polynomial(9)
+    lin_ker.poly_step([cut_off,1/2,2])
     clf_ck = svm.SVC(kernel=lin_ker.distance, C=100, class_weight='balanced')
     trn_target = np.array(train_targets)
     clf_ck.fit(trn_labeled, trn_target)
