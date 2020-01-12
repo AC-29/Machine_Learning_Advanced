@@ -49,7 +49,7 @@ def knn_kernel(data,k=2,t=4): #only without projection
     for i in range((W).shape[0]):
         P[i]=W[i]/sumRowsW[i]
     PT = np.linalg.matrix_power(P,t)
-    return 1/PT
+    return 1/(PT + sys.float_info.epsilon)
 
 def spline_kernel(data1,data2=None):
     if data2 is None:
@@ -167,11 +167,11 @@ class extension_cluster_kernel:
         
         
 class random_walk:
-    def __init__(self,labeledData,labels,unlabeledData,gam=None,k=1,t=2):
+    def __init__(self,labeledData,labelss,unlabeledData,gam=None,k=1,t=2):
         data = np.concatenate((labeledData,unlabeledData))
         L = labeledData.shape[0]
         N = data.shape[0]
-        labels = (1==labels)*1
+        labels = (1==labelss)*1
         self.W = rbf_kernel(data,gamma=gam)
         for i in range((self.W).shape[0]):
             sort = list(np.argsort(self.W[i]))
@@ -190,9 +190,15 @@ class random_walk:
         self.labelProbability = np.zeros((N,2))
         #Initializing random values
         for i in range(N):
-            number = (0.5 - np.random.rand())*0.4
-            self.labelProbability[i,0] = 0.5+number
-            self.labelProbability[i,1]=1-self.labelProbability[i,0]
+            if i < L:
+                self.labelProbability[i,0] = (labels[i]==0)*1
+                self.labelProbability[i,1] = (labels[i]==1)*1
+            else:
+                self.labelProbability[i,0] = 0.5
+                self.labelProbability[i,1] = 0.5
+            #number = (0.5 - np.random.rand())*0.4
+            #self.labelProbability[i,0] = 0.5+number
+            #self.labelProbability[i,1]=1-self.labelProbability[i,0]
         
         self.probability = np.zeros((N,L))
         oldloglike = -np.inf
@@ -204,9 +210,9 @@ class random_walk:
                     self.probability[i,j] = self.labelProbability[i,labels[j]]*self.PT[i,j]
                     
             #M Step
-            for i in range(N):
-                self.labelProbability[i,0] = (np.sum((labels==0)*self.probability[i]))/(np.sum(self.probability[i]))
-                self.labelProbability[i,1] = (np.sum((labels==1)*self.probability[i]))/(np.sum(self.probability[i]))
+            for i in range(L,N):
+                self.labelProbability[i,0] = (np.sum((labels==0)*self.probability[i]))/(np.sum(self.probability[i]) + sys.float_info.epsilon)
+                self.labelProbability[i,1] = (np.sum((labels==1)*self.probability[i]))/(np.sum(self.probability[i]) + sys.float_info.epsilon)
             self.loglike[iter] = np.sum(np.log(np.sum(self.probability,axis=0)))
             if np.abs(self.loglike[iter] - oldloglike) < 10**(-4):
                 break
