@@ -1,9 +1,10 @@
-from paper_kernel import extension_cluster_kernel
+from paper_kernel import *
 import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 import time
 import math
+from sklearn import svm
 
 with open ('usbs_databases', 'rb') as fp:
     usps_file = pickle.load(fp) 
@@ -19,8 +20,8 @@ targets_train = df_usps_sample.iloc[:,0].to_numpy()
 targets_test = df_usps_test.iloc[:,0].to_numpy()
 
 data = np.concatenate((train,test),axis=0)
-
-ker = extension_cluster_kernel(data,'linear')
+kernel = kernel_function('rbf')
+ker = extension_cluster_kernel(data,kernel,'linear')
 eig = ker.eigvalues
 
 
@@ -60,6 +61,12 @@ for iter in range(50):
         test_df = df_usps_test
         test_targets=test_df.iloc[:,0].to_numpy()
         test_inputs =test_df.iloc[:,1:].to_numpy()
+        
+        # data = np.concatenate((train,test),axis=0)
+        # kernel = kernel_function('rbf')
+        # ker = extension_cluster_kernel(data,kernel,'linear')
+        # eig = ker.eigvalues
+        
         clf = svm.SVC(kernel=ker.distance, C=100,class_weight='balanced')
         start = time.time()
         clf.fit(inputs,targets)
@@ -70,6 +77,9 @@ for iter in range(50):
         end = time.time()
         timePred[i] = end-start
         #print('accuracy at iteration'+str(i)+':',accuracy[i])
+        print("sub-iteration: "+str(i)+" out of "+str(math.floor(50/(iter+1))))
+        
+    print("Iteration: ",iter)
     accuracyCK[iter] = np.mean(accuracy)
     stdCK[iter] = np.std(accuracy)
     timeFitCK[iter] = np.mean(timeFit)
@@ -78,16 +88,16 @@ for iter in range(50):
     timePredStdCK[iter] = np.std(timePred)
     
 
-x = np.linspace(0,50)
+x = np.linspace(40,2000,50)
 fig = plt.figure()
 ax = plt.subplot(111)
-ax.plot(x,accuracyRVM,label = 'Cluster Kernel Accuracy')
-plt.title('SVM Accuracy using Cluster Kernel with increaseing training samples')
-ax.legend()
+ax.plot(x,accuracyCK,label = 'Cluster Kernel Accuracy')
+plt.title('SVM Accuracy using Cluster Kernel with increasing training samples')
+# ax.legend()
 plt.show()
 ax = plt.subplot(111)
-ax.plot(x,timeFitRVM,'r',label = 'Fit Time')
-ax.plot(x,timePredRVM,'b',label = 'Predict Time')
-plt.title('SVM time elased using Cluster Kernel with increasing training samples')
+ax.plot(x,timeFitCK,'r',label = 'Fit Time')
+ax.plot(x,timePredCK,'b',label = 'Predict Time')
+plt.title('SVM time elapsed using Cluster Kernel with increasing training samples')
 ax.legend()
 plt.show()
