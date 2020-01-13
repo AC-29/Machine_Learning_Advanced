@@ -205,10 +205,14 @@ class random_walk:
         self.loglike = np.zeros(100)
         for iter in range(50):
             #E Step
-            for i in range(N):
-                for j in range(L):
-                    self.probability[i,j] = self.labelProbability[i,labels[j]]*self.PT[i,j]
-                    
+            self.loglike[iter] = 0
+            for j in range(L):
+                tmpsum=0
+                for i in range(N):
+                    self.probability[i,j] = self.labelProbability[i,labels[j]]*self.PT[i,j] +sys.float_info.epsilon
+                    tmpsum+=self.probability[i,j]
+                self.probability[:,j] = self.probability[:,j]/(tmpsum + N*sys.float_info.epsilon)
+                self.loglike[iter]+=np.log(tmpsum)
             #M Step
             for i in range(N):
                 if np.sum(self.probability[i]) == 0:
@@ -221,7 +225,6 @@ class random_walk:
             if np.abs(self.loglike[iter] - oldloglike) < 10**(-4):
                 print("RW converged, iter: " + str(iter))
                 break
-            oldloglike = self.loglike[iter]
         self.posterior = np.zeros((2,N))
         #self.posterior = np.matmul((self.labelProbability).transpose(),self.PT)
         for k in range(N):
