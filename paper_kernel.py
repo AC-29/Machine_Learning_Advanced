@@ -211,8 +211,12 @@ class random_walk:
                     
             #M Step
             for i in range(N):
-                self.labelProbability[i,0] = (np.sum((labels==0)*self.probability[i]))/(np.sum(self.probability[i]))
-                self.labelProbability[i,1] = (np.sum((labels==1)*self.probability[i]))/(np.sum(self.probability[i]))
+                if np.sum(self.probability[i]) == 0:
+                    self.labelProbability[i,0] = 0.5
+                    self.labelProbability[i,1] = 0.5
+                else:
+                    self.labelProbability[i,0] = (np.sum((labels==0)*self.probability[i]))/(np.sum(self.probability[i]))
+                    self.labelProbability[i,1] = (np.sum((labels==1)*self.probability[i]))/(np.sum(self.probability[i]))
             self.loglike[iter] = np.sum(np.log(np.sum(self.probability,axis=0)))
             if np.abs(self.loglike[iter] - oldloglike) < 10**(-4):
                 print("RW converged, iter: " + str(iter))
