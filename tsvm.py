@@ -23,7 +23,7 @@ class TSVM:
         training_targets_l_u = np.concatenate((train_targets, train_unlabeled_prediction ))
 
         while self.Cu < self.Cl:
-            self.clf.fit(training_l_u, training_targets_l_u, sample_weight=weight)
+            self.clf.fit(training_l_u, training_targets_l_u.ravel(), sample_weight=weight)
             while True:
                 train_unlabeled_prediction_d = self.clf.decision_function(train_unlabeled)
                 train_unlabeled_prediction  = train_unlabeled_prediction .reshape(-1)
@@ -38,7 +38,7 @@ class TSVM:
                     train_unlabeled_prediction [neg_id_max] = -train_unlabeled_prediction [neg_id_max]
                     train_unlabeled_prediction  = np.expand_dims(train_unlabeled_prediction , 1)
                     training_targets_l_u = np.concatenate((train_targets, train_unlabeled_prediction ))
-                    self.clf.fit(training_l_u, training_targets_l_u, sample_weight=weight)
+                    self.clf.fit(training_l_u, training_targets_l_u.ravel(), sample_weight=weight)
                 else:
                     break
             self.Cu = min(2*self.Cu, self.Cl)
