@@ -70,12 +70,12 @@ for iter in range(50):
     timePredStdSVM[iter] = np.std(timePred)
     
 
-x = np.linspace(0,50)
+x = np.linspace(40,2000,50)
 fig = plt.figure()
 ax = plt.subplot(111)
 ax.plot(x,accuracySVM,label = 'SVM Accuracy')
 plt.title('SVM Accuracy with increaseing training samples')
-ax.legend()
+#ax.legend()
 plt.show()
 ax = plt.subplot(111)
 ax.plot(x,timeFitSVM,'r',label = 'Fit Time')
