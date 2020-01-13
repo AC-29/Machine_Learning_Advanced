@@ -203,22 +203,28 @@ class random_walk:
         self.probability = np.zeros((N,L))
         oldloglike = -np.inf
         self.loglike = np.zeros(100)
-        for iter in range(100):
+        for iter in range(50):
             #E Step
             for i in range(N):
                 for j in range(L):
                     self.probability[i,j] = self.labelProbability[i,labels[j]]*self.PT[i,j]
                     
             #M Step
-            for i in range(L,N):
-                self.labelProbability[i,0] = (np.sum((labels==0)*self.probability[i]))/(np.sum(self.probability[i]) + sys.float_info.epsilon)
-                self.labelProbability[i,1] = (np.sum((labels==1)*self.probability[i]))/(np.sum(self.probability[i]) + sys.float_info.epsilon)
+            for i in range(N):
+                self.labelProbability[i,0] = (np.sum((labels==0)*self.probability[i]))/(np.sum(self.probability[i]))
+                self.labelProbability[i,1] = (np.sum((labels==1)*self.probability[i]))/(np.sum(self.probability[i]))
             self.loglike[iter] = np.sum(np.log(np.sum(self.probability,axis=0)))
             if np.abs(self.loglike[iter] - oldloglike) < 10**(-4):
+                print("RW converged, iter: " + str(iter))
                 break
             oldloglike = self.loglike[iter]
-        
-        self.posterior = np.matmul((self.labelProbability).transpose(),self.PT)
+        self.posterior = np.zeros((2,N))
+        #self.posterior = np.matmul((self.labelProbability).transpose(),self.PT)
+        for k in range(N):
+            for i in range(N):
+                self.posterior[0,k]+=self.labelProbability[i,0]*self.PT[k,i]
+                self.posterior[1,k]+=self.labelProbability[i,1]*self.PT[k,i]
+                
         self.results = ((np.argmax(self.posterior,axis = 0))*2)-1
         
 def JH_bound(dataTrain,targets,dataTest):
