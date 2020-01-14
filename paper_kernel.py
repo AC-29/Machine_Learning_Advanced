@@ -174,7 +174,7 @@ class random_walk:
         labels = (1==labelss)*1
         self.W = rbf_kernel(data,gamma=gam)
         for i in range((self.W).shape[0]):
-            sort = list(np.argsort(self.W[i]))
+            sort = list(np.argsort(-self.W[i]))
             sort.remove(i)
             for j in sort[k:]:
                 self.W[i,j]=0
