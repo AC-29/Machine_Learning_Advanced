@@ -28,20 +28,21 @@ data=data[:,:-1]
 
 sigma = 6
 gamma = 1/(2*(sigma**2))
-trainSize = 30
+trainSize = 40
 iterations = 50
-accuracy_total = np.zeros((iterations, 3))
+accuracy_total = np.zeros((iterations, 4))
 count = 0
 for i in range(iterations):
     #
-    lengthTrain = 1
+    # lengthTrain = 1
     
-    while lengthTrain == 1:
-        np.random.seed(i+count)
-        indeces = np.random.permutation(data.shape[0])
-        train_targets = targets[indeces[0:trainSize]]
-        lengthTrain = len(np.unique(train_targets))
-        count += count
+    # while lengthTrain == 1:
+        # np.random.seed(i+count)
+    np.random.seed(i)
+    indeces = np.random.permutation(data.shape[0])
+    train_targets = targets[indeces[0:trainSize]]
+    lengthTrain = len(np.unique(train_targets))
+        # count += count
         
     train_l = data[indeces[:trainSize]]    
     train_unlabeled = data[indeces[trainSize:(trainSize+100)]]
@@ -49,40 +50,53 @@ for i in range(iterations):
     test_data = data[indeces[(trainSize+100):-1]]
     test_data_target = targets[indeces[(trainSize+100):-1]]
         
+
+    # ## SVM ##
+    # clf = svm.SVC(C=100, gamma=gamma,kernel = 'linear')
+    # clf.fit(train_l, train_targets)
+    # accuracy_total[i, 0] = clf.score(test_data, test_data_target)
     
     
-    
-    ## SVM ##
-    clf = svm.SVC(C=100, gamma=gamma,kernel = 'linear')
-    clf.fit(train_l, train_targets)
-    accuracy_total[i, 0] = clf.score(test_data, test_data_target)
-    
-    
-    ## TSVM ##
-    C = 100
-    kernel = 'linear'
-    model = TSVM(kernel, gamma, C)
-    model.train(train_l, train_targets, train_unlabeled)
-    test_predictions = model.predict(test_data)
-    accuracy_total[i, 1] = compute_accuracy(test_predictions, test_data_target)
+    # ## TSVM ##
+    # C = 100
+    # kernel = 'linear'
+    # model = TSVM(kernel, gamma, C)
+    # model.train(train_l, train_targets, train_unlabeled)
+    # test_predictions = model.predict(test_data)
+    # accuracy_total[i, 1] = compute_accuracy(test_predictions, test_data_target)
     
     trn_labeled = train_l
     trn_unlabeled = train_unlabeled
     trn = np.concatenate((trn_labeled, trn_unlabeled), axis=0)
     
     ## Extension Cluster Kernel ##
-    dataAux = np.concatenate((trn, test_data), axis=0)
-    kernel = kernel_function('rbf')
-    lin_ker = extension_cluster_kernel(dataAux, kernel,'linear')
-    eig = lin_ker.eigvalues
-    cut_off = k_th_largest_eig(eig, i)
+    # dataAux = np.concatenate((trn, test_data), axis=0)
+    # kernel = kernel_function('rbf')
+    # lin_ker = extension_cluster_kernel(dataAux, kernel,'linear')
+    # eig = lin_ker.eigvalues
+    # cut_off = k_th_largest_eig(eig, i)
     # lin_ker.poly_step([cut_off,1/2,2])
-    # lin_ker.polynomial(12)
-    lin_ker.step(cut_off)
-    clf_ck = svm.SVC(kernel=lin_ker.distance, C=100, class_weight='balanced')
-    trn_target = np.array(train_targets)
-    clf_ck.fit(trn_labeled, trn_target)
-    accuracy_total[i, 2] = clf_ck.score(test_data, test_data_target)
+    # # lin_ker.polynomial(12)
+    # # lin_ker.step(cut_off)
+    # clf_ck = svm.SVC(kernel=lin_ker.distance, C=100, class_weight='balanced')
+    # trn_target = np.array(train_targets)
+    # clf_ck.fit(trn_labeled, trn_target)
+    # accuracy_total[i, 2] = clf_ck.score(test_data, test_data_target)
+    # print(accuracy_total[i,2])
+    
+    
+    # #RW
+    unlabeled_data = np.concatenate((train_unlabeled,test_data))
+    unlabeled_targets = np.concatenate((train_targets,test_data_target))
+    
+    rw = random_walk(train_l,train_targets,unlabeled_data,gam = 0.27, k = 7, t = 5)
+    # accuracy_total[i,3] = np.sum(1*(rw.results[len(train_targets):] == unlabeled_targets))/len(unlabeled_targets)
+    aux = 0
+    for j in range(len(train_targets)):
+        aux+=(rw.results[len(train_targets)+j] ==int(unlabeled_targets[j]))*1
+    
+    accuracy_total[i,3] = aux/len(unlabeled_targets)
+    print(accuracy_total[i,3])
     
     
     
