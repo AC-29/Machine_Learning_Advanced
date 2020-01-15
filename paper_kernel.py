@@ -35,10 +35,10 @@ class kernel_mix:
             ans+= tmp/np.mean(tmp)
         return ans
 
-def knn_kernel(data,k=2,t=4): #only without projection
+def knn_kernel(data,gamma = 1,k=2,t=4): #only without projection
     W = rbf_kernel(data)
     for i in range((W).shape[0]):
-        sort = list(np.argsort(W[i]))
+        sort = list(np.argsort(-W[i]))
         sort.remove(i)
         for j in sort[k:]:
             W[i,j]=0
@@ -69,6 +69,7 @@ class extension_cluster_kernel:
             self.dict[d.tobytes()] = i
         self.kernel_function = kernel_f
         K = self.kernel_function.calculate(data)
+        #np.fill_diagonal(K,1)
         self.rbfK = K
         self.invRbfK = np.linalg.inv(self.rbfK)
         D = np.zeros((K.shape[0],K.shape[1]))
@@ -84,6 +85,7 @@ class extension_cluster_kernel:
             self.K = getattr(self, type)()
     def compute_K(self,L):
         D_hat = np.diag((1./(np.diagonal(L) + sys.float_info.epsilon))**(0.5))
+        #D_hat = np.diag((1./(np.diagonal(L)))**(0.5))
         K_hat = (D_hat.dot(L)).dot(D_hat)
         return K_hat
     def linear(self):
@@ -107,8 +109,10 @@ class extension_cluster_kernel:
         self.K = self.compute_K(L_hat)
         return self.K
     def polynomial(self,t):
-        tmp_eig = np.diag(np.power(self.eigvalues,t))
+        tmp = np.power(self.eigvalues,t)
+        tmp_eig = np.diag(tmp)
         L_hat = (self.eigvectors.dot(tmp_eig)).dot(self.eigvectors.T)
+        #L_hat = np.linalg.matrix_power(self.L,t)
         self.K = self.compute_K(L_hat)
         return self.K
     def poly_step(self,parameter_list):
