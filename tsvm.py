@@ -26,13 +26,20 @@ class TSVM:
             self.clf.fit(training_l_u, training_targets_l_u.ravel(), sample_weight=weight)
             while True:
                 train_unlabeled_prediction_d = self.clf.decision_function(train_unlabeled)
-                train_unlabeled_prediction  = train_unlabeled_prediction .reshape(-1)
+                train_unlabeled_prediction  = train_unlabeled_prediction.reshape(-1)
                 margin = 1 - train_unlabeled_prediction  * train_unlabeled_prediction_d
-                pos, pos_id = margin[train_unlabeled_prediction  > 0], train_unlabeled_id[train_unlabeled_prediction  > 0]
-                neg, neg_id = margin[train_unlabeled_prediction  < 0], train_unlabeled_id[train_unlabeled_prediction  < 0]
+                pos = margin[train_unlabeled_prediction  > 0]
+                pos_id = train_unlabeled_id[train_unlabeled_prediction  > 0]
+                neg = margin[train_unlabeled_prediction  < 0]
+                neg_id = train_unlabeled_id[train_unlabeled_prediction  < 0]
+                if pos.size == 0:
+                    break
                 pos_id_max = pos_id[np.argmax(pos)]
+                if neg.size == 0:
+                    break
                 neg_id_max = neg_id[np.argmax(neg)]
-                m, l = margin[pos_id_max], margin[neg_id_max]
+                m= margin[pos_id_max]
+                l = margin[neg_id_max]
                 if m > 0 and l > 0 and m + l > 2.0:
                     train_unlabeled_prediction [pos_id_max] = -train_unlabeled_prediction [pos_id_max]
                     train_unlabeled_prediction [neg_id_max] = -train_unlabeled_prediction [neg_id_max]
@@ -43,9 +50,3 @@ class TSVM:
                     break
             self.Cu = min(2*self.Cu, self.Cl)
             weight[len(train_data):] = self.Cu
-
-    def predict(self, X):
-        return self.clf.predict(X)
-
-    def score(self, X, Y):
-        return self.clf.score(X, Y)
